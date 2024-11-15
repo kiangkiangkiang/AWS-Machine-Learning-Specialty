@@ -139,3 +139,18 @@ Stream processing 是將 Source Data 直接加載到工作環境，做訓練，�
 
 舉例來說：假設我有一個推薦系統的服務在 EC2，我設定每 5 分鐘做一次小幅度的 Retrain，這樣我的 Web App 可以透過 AWS Kinesis Data Firehose 設定將資料每 5 分鐘匯入 S3，之後 Trigger 我的 EC2 建立好的微服務處發自動化訓練流程，接著訓練好後切換成最新模型，這樣的應用情境對嗎，邏輯通嗎，服務整合的好嗎
 
+## 3. Data Transformation Solution
+
+在收集、遷移、整合好原始資料後，還需要進一步的做初步清洗，也就是 Data Transformation 的任務。
+
+*注意：在學界情境，通常資料量小，因此資料清洗的工作可能在 R、Python 等程式直接匯入處理，但在許多工業場景上，資料可能是數以百萬計起跳，這樣的資料通常無法直接匯入上述的 IDE 進行處理分析（效率也很差），因此這邊才需要特別切出 Data Transformation 流程，主要就是以分散式處理流程清洗大量資料。*
+
+- AWS EMR: 執行 Apache Spark、Hive、Presto 等操作。因此可以平行處理大數據。
+
+ETL 的工具包含：Amazon Athena, AWS Glue, Amazon Redshift Spectrum 等，通常取決於資料型態而選用 ETL 工具，例如結構化資料可使用 Athena，而 SQL 無法支援的資料型態則可使用 Glue 等，
+
+| ETL 工具                     | 合適的資料型態                  | 適合的表格資料類型               | 主要用途                       |
+|------------------------------|----------------------------|--------------------------|----------------------------|
+| **Amazon Athena**            | 結構化和半結構化的數據：CSV、JSON | 日誌數據、分析報告                | 即時 SQL 查詢 S3 中的數據      |
+| **AWS Glue**                 | 支援多種資料格式：JSON、CSV       | 結構化和非結構化數據的轉換與清洗 | 全託管 ETL，資料編目與清洗      |
+| **Amazon Redshift Spectrum** | 結構化數據：CSV                  | 大型數據集，如數據倉庫的歷史資料  | 擴展查詢 Redshift 外的 S3 數據 |
