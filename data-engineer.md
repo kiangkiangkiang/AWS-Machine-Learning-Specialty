@@ -6,13 +6,9 @@
 
 本章主要著重於**資料存取**的部分，在多個 AWS 服務中，依照場景選擇最佳資料存取服務。
 
---- 
+而對於整個資料流的解決方法，通常會集成在 Data Lake 中。
 
-## 1. Storage Services
-
-在 ML 中，資料儲存體的 AWS 服務介紹。
-
-### AWS Lake Formation
+###  AWS Lake Formation
 
 #### Source
 
@@ -31,8 +27,21 @@ https://aws.amazon.com/tw/lake-formation/
 
 由上述可知，要建構一個完整的 Data Lake 可能牽涉到多個層級的服務，因此 AWS Lake Formation 主要**是簡化和加速構建安全且可配置的 Data Lake 的過程**，可以想像成在 Data Engineer 領域的 K8s，雖然本質差異很大，但出發點都是希望透過簡單的方式快速建置一個龐大的服務。
 
+因此以下各個服務，可以視為 Data Lake 內的某個子元件。
+
+--- 
+
+## 1. Storage Services
+
+在 ML 中，資料儲存體的 AWS 服務介紹。
 
 ### AWS S3
+
+#### Source
+
+https://aws.amazon.com/tw/s3/
+
+#### Summary
 
 - AWS 的雲端儲存層。
 - 可對照成 GCP Cloud Storage。或是最簡單可比照成 Google Drive。
@@ -103,5 +112,30 @@ Amazon Elastic File System，同樣也是一個 File System，在掛載後，一
 
 ---
 
-## 2. Ingestion solution
+## 2. Ingestion Solution
+
+上述介紹完資料儲存的各個服務，此節將介紹，各個分散的資料源該怎麼導入到上述的儲存體。
+
+首先，要先搞清楚，原始資料（可能來自某個 APP、Web Services 等等）要透過什麼方式導入（和商業邏輯相關），例如我要做推薦系統，Web Services 的資料就要 **real-time** 導入 AWS 儲存體內，或假設我想預訓練 LLM、可能會有線上爬蟲服務收集文本資料，這樣的資料即時性要求不高，就可以透過**批次處理**的方式。
+
+因此我們將 Ingestion Solution 細分成批次處理的 Batch processing 和即時處理的 Stream processing 這兩種資料導入的概念。
+
+### Batch processing
+
+Batch processing 主要就是將 Source Data 加載到工作環境的儲存體（通常是 AWS S3），需要使用時再將儲存體的資料匯入（例如上述提到的 AWS FSx）。
+
+- AWS Glue: ETL 工具，可將資料加值、清洗、處理到各個儲存體。
+- AWS Database Migration Service (AWS DMS): 資料庫搬遷工具，可將 A 資料庫特定區間的歷史資料搬到 B 資料庫，例如 AWS RDS to AWS S3。
+
+### Stream processing
+
+Stream processing 是將 Source Data 直接加載到工作環境，做訓練，無需再次匯入，直接使用。
+
+- AWS Kinesis: 扮演數據流管道的角色（本身也可視作一個儲存體），將即時資料導入到指定地點。其中又包含：
+  - Data Streams: 收集即時資料
+  - Data Firehouse: 批次（秒 or 分鐘）轉換到指定的地點（例如 AWS S3）
+  
+因此，假設在 App 上串好 AWS Kinesis SDK 接收資料的服務，只要有一個新的事件（資料或是 Log）發生，我的 Web App 資料就會即時收集在 AWS Kinesis，並且導入到指定地點，如 S3 。
+
+舉例來說：假設我有一個推薦系統的服務在 EC2，我設定每 5 分鐘做一次小幅度的 Retrain，這樣我的 Web App 可以透過 AWS Kinesis Data Firehose 設定將資料每 5 分鐘匯入 S3，之後 Trigger 我的 EC2 建立好的微服務處發自動化訓練流程，接著訓練好後切換成最新模型，這樣的應用情境對嗎，邏輯通嗎，服務整合的好嗎
 
